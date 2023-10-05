@@ -110,7 +110,6 @@ header h2 {
 
 .progress {
   width: 100%;
-  -webkit-appearance: none;
   height: 6px;
   background: #d3d3d3;
   outline: none;
@@ -150,6 +149,10 @@ header h2 {
 
 .song:active {
   opacity: 0.8;
+}
+
+.song:hover {
+  cursor: pointer;
 }
 
 .song.active .option,
