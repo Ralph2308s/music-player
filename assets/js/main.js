@@ -1,352 +1,291 @@
-// Mythium Archive: https://archive.org/details/mythium/
+const $ = document.querySelector.bind(document);
+const $$ = document.querySelectorAll.bind(document);
 
-jQuery(function ($) {
-  "use strict";
-  var supportsAudio = !!document.createElement("audio").canPlayType;
-  if (supportsAudio) {
-    // initialize plyr
-    var player = new Plyr("#audio1", {
-      controls: [
-        "restart",
-        "play",
-        "progress",
-        "current-time",
-        "duration",
-        "mute",
-        "volume",
-        "download",
-      ],
+const PLAYER_STORAGE_KEY = "F8_PLAYER";
+
+const player = $(".player");
+const cd = $(".cd");
+const heading = $("header h2");
+const cdThumb = $(".cd-thumb");
+const audio = $("#audio");
+const playBtn = $(".btn-toggle-play");
+const progress = $("#progress");
+const nextBtn = $(".btn-next");
+const prevBtn = $(".btn-prev");
+const randomBtn = $(".btn-random");
+const repeatBtn = $(".btn-repeat");
+const playList = $(".playlist");
+
+const app = {
+  currentIndex: 0,
+  isPlaying: false,
+  isRandom: false,
+  isRepeat: false,
+  config: JSON.parse(localStorage.getItem(PLAYER_STORAGE_KEY)) || {},
+  songs: [
+    {
+      name: "Click Pow Get Down",
+      singer: "Raftaar x Fortnite",
+      path: "http://songs6.vlcmusic.com/mp3/org/34737.mp3",
+      image: "https://i.ytimg.com/vi/jTLhQf5KJSc/maxresdefault.jpg",
+    },
+    {
+      name: "Love Curse Raman Gill",
+      singer: "Raman Gill",
+      path: "http://songs6.vlcmusic.com/mp3/org/49099.mp3",
+      image:
+        "https://songs6.vlcmusic.com/tiny_image/timthumb.php?q=100&w=250&src=images/49099.png",
+    },
+    {
+      name: "Jaal A Kay",
+      singer: "A Kay",
+      path: "http://songs6.vlcmusic.com/mp3/org/49108.mp3",
+      image:
+        "https://songs6.vlcmusic.com/tiny_image/timthumb.php?q=100&w=250&src=images/49108.png",
+    },
+    {
+      name: "Aarzi Kaka",
+      singer: "Kaka",
+      path: "http://songs6.vlcmusic.com/mp3/org/49105.mp3",
+      image:
+        "https://songs6.vlcmusic.com/tiny_image/timthumb.php?q=100&w=250&src=images/49105.png",
+    },
+    {
+      name: "Chaleya Arabic Version Grini",
+      singer: "Grini , Jamila El Badaoui",
+      path: "http://songs6.vlcmusic.com/mp3/org/48908.mp3",
+      image:
+        "https://songs6.vlcmusic.com/tiny_image/timthumb.php?q=100&w=250&src=images/48908.png",
+    },
+    {
+      name: "Goddamn Jerry",
+      singer: "Jerry",
+      path: "http://songs6.vlcmusic.com/mp3/org/47099.mp3",
+      image:
+        "https://songs6.vlcmusic.com/tiny_image/timthumb.php?q=100&w=250&src=images/47099.png",
+    },
+    {
+      name: "With You AP Dhillon",
+      singer: "AP Dhillon",
+      path: "http://songs6.vlcmusic.com/mp3/org/48871.mp3",
+      image:
+        "https://songs6.vlcmusic.com/tiny_image/timthumb.php?q=100&w=250&src=images/48871.png",
+    },
+  ],
+  setConfig: function (key, value) {
+    this.config[key] = value;
+    localStorage.setItem(PLAYER_STORAGE_KEY, JSON.stringify(this.config));
+  },
+  render: function () {
+    const htmls = this.songs.map((song, index) => {
+      return `
+        <div class="song ${
+          index === this.currentIndex ? "active" : ""
+        }" data-index="${index}">
+          <div
+            class="thumb"
+            style="
+              background-image: url('${song.image}');
+            "
+          ></div>
+          <div class="body">
+            <h3 class="title">${song.name}</h3>
+            <p class="author">${song.singer}</p>
+          </div>
+          <div class="option">
+            <i class="fas fa-ellipsis-h"></i>
+          </div>
+        </div>
+      `;
     });
-    // initialize playlist and controls
-    var index = 0,
-      playing = false,
-      mediaPath = "https://archive.org/download/mythium/",
-      extension = "",
-      tracks = [
-        {
-          track: 1,
-          name: "All This Is - Joe L.'s Studio",
-          duration: "2:46",
-          file: "JLS_ATI",
-        },
-        {
-          track: 2,
-          name: "The Forsaken - Broadwing Studio (Final Mix)",
-          duration: "8:30",
-          file: "BS_TF",
-        },
-        {
-          track: 3,
-          name: "All The King's Men - Broadwing Studio (Final Mix)",
-          duration: "5:01",
-          file: "BS_ATKM",
-        },
-        {
-          track: 4,
-          name: "The Forsaken - Broadwing Studio (First Mix)",
-          duration: "8:31",
-          file: "BSFM_TF",
-        },
-        {
-          track: 5,
-          name: "All The King's Men - Broadwing Studio (First Mix)",
-          duration: "5:05",
-          file: "BSFM_ATKM",
-        },
-        {
-          track: 6,
-          name: "All This Is - Alternate Cuts",
-          duration: "2:48",
-          file: "AC_ATI",
-        },
-        {
-          track: 7,
-          name: "All The King's Men (Take 1) - Alternate Cuts",
-          duration: "5:44",
-          file: "AC_ATKMTake_1",
-        },
-        {
-          track: 8,
-          name: "All The King's Men (Take 2) - Alternate Cuts",
-          duration: "5:26",
-          file: "AC_ATKMTake_2",
-        },
-        {
-          track: 9,
-          name: "Magus - Alternate Cuts",
-          duration: "5:46",
-          file: "AC_M",
-        },
-        {
-          track: 10,
-          name: "The State Of Wearing Address (fucked up) - Alternate Cuts",
-          duration: "5:25",
-          file: "AC_TSOWAfucked_up",
-        },
-        {
-          track: 11,
-          name: "Magus - Popeye's (New Years '04 - '05)",
-          duration: "5:53",
-          file: "PNY04-05_M",
-        },
-        {
-          track: 12,
-          name: "On The Waterfront - Popeye's (New Years '04 - '05)",
-          duration: "4:40",
-          file: "PNY04-05_OTW",
-        },
-        {
-          track: 13,
-          name: "Trance - Popeye's (New Years '04 - '05)",
-          duration: "13:15",
-          file: "PNY04-05_T",
-        },
-        {
-          track: 14,
-          name: "The Forsaken - Popeye's (New Years '04 - '05)",
-          duration: "8:12",
-          file: "PNY04-05_TF",
-        },
-        {
-          track: 15,
-          name: "The State Of Wearing Address - Popeye's (New Years '04 - '05)",
-          duration: "7:02",
-          file: "PNY04-05_TSOWA",
-        },
-        {
-          track: 16,
-          name: "Magus - Popeye's (Valentine's Day '05)",
-          duration: "5:43",
-          file: "PVD_M",
-        },
-        {
-          track: 17,
-          name: "Trance - Popeye's (Valentine's Day '05)",
-          duration: "10:45",
-          file: "PVD_T",
-        },
-        {
-          track: 18,
-          name: "The State Of Wearing Address - Popeye's (Valentine's Day '05)",
-          duration: "5:36",
-          file: "PVD_TSOWA",
-        },
-        {
-          track: 19,
-          name: "All This Is - Smith St. Basement (01/08/04)",
-          duration: "2:48",
-          file: "SSB01_08_04_ATI",
-        },
-        {
-          track: 20,
-          name: "Magus - Smith St. Basement (01/08/04)",
-          duration: "5:46",
-          file: "SSB01_08_04_M",
-        },
-        {
-          track: 21,
-          name: "Beneath The Painted Eye - Smith St. Basement (06/06/03)",
-          duration: "13:07",
-          file: "SSB06_06_03_BTPE",
-        },
-        {
-          track: 22,
-          name: "Innocence - Smith St. Basement (06/06/03)",
-          duration: "5:16",
-          file: "SSB06_06_03_I",
-        },
-        {
-          track: 23,
-          name: "Magus - Smith St. Basement (06/06/03)",
-          duration: "5:46",
-          file: "SSB06_06_03_M",
-        },
-        {
-          track: 24,
-          name: "Madness Explored - Smith St. Basement (06/06/03)",
-          duration: "4:51",
-          file: "SSB06_06_03_ME",
-        },
-        {
-          track: 25,
-          name: "The Forsaken - Smith St. Basement (06/06/03)",
-          duration: "8:43",
-          file: "SSB06_06_03_TF",
-        },
-        {
-          track: 26,
-          name: "All This Is - Smith St. Basement (12/28/03)",
-          duration: "3:00",
-          file: "SSB12_28_03_ATI",
-        },
-        {
-          track: 27,
-          name: "Magus - Smith St. Basement (12/28/03)",
-          duration: "6:09",
-          file: "SSB12_28_03_M",
-        },
-        {
-          track: 28,
-          name: "Madness Explored - Smith St. Basement (12/28/03)",
-          duration: "5:05",
-          file: "SSB12_28_03_ME",
-        },
-        {
-          track: 29,
-          name: "Trance - Smith St. Basement (12/28/03)",
-          duration: "12:32",
-          file: "SSB12_28_03_T",
-        },
-        {
-          track: 30,
-          name: "The Forsaken - Smith St. Basement (12/28/03)",
-          duration: "8:56",
-          file: "SSB12_28_03_TF",
-        },
-        {
-          track: 31,
-          name: "All This Is (Take 1) - Smith St. Basement (Nov. '03)",
-          duration: "4:55",
-          file: "SSB___11_03_ATITake_1",
-        },
-        {
-          track: 32,
-          name: "All This Is (Take 2) - Smith St. Basement (Nov. '03)",
-          duration: "5:45",
-          file: "SSB___11_03_ATITake_2",
-        },
-        {
-          track: 33,
-          name: "Beneath The Painted Eye (Take 1) - Smith St. Basement (Nov. '03)",
-          duration: "14:05",
-          file: "SSB___11_03_BTPETake_1",
-        },
-        {
-          track: 34,
-          name: "Beneath The Painted Eye (Take 2) - Smith St. Basement (Nov. '03)",
-          duration: "13:25",
-          file: "SSB___11_03_BTPETake_2",
-        },
-        {
-          track: 35,
-          name: "The Forsaken (Take 1) - Smith St. Basement (Nov. '03)",
-          duration: "8:37",
-          file: "SSB___11_03_TFTake_1",
-        },
-        {
-          track: 36,
-          name: "The Forsaken (Take 2) - Smith St. Basement (Nov. '03)",
-          duration: "8:36",
-          file: "SSB___11_03_TFTake_2",
-        },
-      ],
-      buildPlaylist = $.each(tracks, function (key, value) {
-        var trackNumber = value.track,
-          trackName = value.name,
-          trackDuration = value.duration;
-        if (trackNumber.toString().length === 1) {
-          trackNumber = "0" + trackNumber;
-        }
-        $("#plList").append(
-          '<li> \
-                  <div class="plItem"> \
-                      <span class="plNum">' +
-            trackNumber +
-            '.</span> \
-                      <span class="plTitle">' +
-            trackName +
-            '</span> \
-                      <span class="plLength">' +
-            trackDuration +
-            "</span> \
-                  </div> \
-              </li>"
-        );
-      }),
-      trackCount = tracks.length,
-      npAction = $("#npAction"),
-      npTitle = $("#npTitle"),
-      audio = $("#audio1")
-        .on("play", function () {
-          playing = true;
-          npAction.text("Now Playing...");
-        })
-        .on("pause", function () {
-          playing = false;
-          npAction.text("Paused...");
-        })
-        .on("ended", function () {
-          npAction.text("Paused...");
-          if (index + 1 < trackCount) {
-            index++;
-            loadTrack(index);
-            audio.play();
-          } else {
-            audio.pause();
-            index = 0;
-            loadTrack(index);
-          }
-        })
-        .get(0),
-      btnPrev = $("#btnPrev").on("click", function () {
-        if (index - 1 > -1) {
-          index--;
-          loadTrack(index);
-          if (playing) {
-            audio.play();
-          }
-        } else {
-          audio.pause();
-          index = 0;
-          loadTrack(index);
-        }
-      }),
-      btnNext = $("#btnNext").on("click", function () {
-        if (index + 1 < trackCount) {
-          index++;
-          loadTrack(index);
-          if (playing) {
-            audio.play();
-          }
-        } else {
-          audio.pause();
-          index = 0;
-          loadTrack(index);
-        }
-      }),
-      li = $("#plList li").on("click", function () {
-        var id = parseInt($(this).index());
-        if (id !== index) {
-          playTrack(id);
-        }
-      }),
-      loadTrack = function (id) {
-        $(".plSel").removeClass("plSel");
-        $("#plList li:eq(" + id + ")").addClass("plSel");
-        npTitle.text(tracks[id].name);
-        index = id;
-        audio.src = mediaPath + tracks[id].file + extension;
-        updateDownload(id, audio.src);
+    playList.innerHTML = htmls.join("");
+  },
+
+  // getter
+  defineProperties: function () {
+    Object.defineProperty(this, "currentSong", {
+      get: function () {
+        return this.songs[this.currentIndex];
       },
-      updateDownload = function (id, source) {
-        player.on("loadedmetadata", function () {
-          $('a[data-plyr="download"]').attr("href", source);
-        });
-      },
-      playTrack = function (id) {
-        loadTrack(id);
+    });
+  },
+  handleEvents: function () {
+    const _this = this;
+
+    // Xử lý CD quay / dừng
+    const cdThumbAnimate = cdThumb.animate([{ transform: "rotate(360deg)" }], {
+      duration: 10000, // 10 seconds
+      iterations: Infinity,
+    });
+    cdThumbAnimate.pause();
+
+    // Xử lý phóng to / thu nhỏ CD
+    const cdWidth = cd.offsetWidth;
+    document.onscroll = function () {
+      const scrollTop = window.scrollY || document.documentElement.scrollTop;
+      const newCsWidth = cdWidth - scrollTop;
+      cd.style.width = newCsWidth > 0 ? newCsWidth + "px" : 0;
+      cd.style.opacity = newCsWidth / cdWidth;
+    };
+
+    // Xử lý khi click play
+    playBtn.onclick = function () {
+      if (_this.isPlaying) {
+        audio.pause();
+      } else {
         audio.play();
-      };
-    extension = audio.canPlayType("audio/mpeg")
-      ? ".mp3"
-      : audio.canPlayType("audio/ogg")
-      ? ".ogg"
-      : "";
-    loadTrack(index);
-  } else {
-    // no audio support
-    $(".column").addClass("hidden");
-    var noSupport = $("#audio1").text();
-    $(".container").append('<p class="no-support">' + noSupport + "</p>");
-  }
-});
+      }
+    };
+
+    // Khi song được play
+    audio.onplay = function () {
+      _this.isPlaying = true;
+      player.classList.add("playing");
+      cdThumbAnimate.play();
+    };
+
+    // Khi song bị pause
+    audio.onpause = function () {
+      _this.isPlaying = false;
+      player.classList.remove("playing");
+      cdThumbAnimate.pause();
+    };
+
+    // Khi tiến độ bài hát thay đổi
+    audio.ontimeupdate = function () {
+      if (audio.duration) {
+        const progressPercent = Math.floor(
+          (audio.currentTime / audio.duration) * 100
+        );
+        progress.value = progressPercent;
+      }
+    };
+
+    // Xử lý khi tua song
+    progress.onchange = function (e) {
+      const seekTime = (audio.duration * e.target.value) / 100;
+      audio.currentTime = seekTime;
+    };
+
+    // Khi next song
+    nextBtn.onclick = function () {
+      if (_this.isRandom) {
+        _this.playRandomSong();
+      } else {
+        _this.nextSong();
+      }
+      audio.play();
+      _this.render();
+      _this.scrollToActiveSong();
+    };
+
+    // Khi pre song
+    prevBtn.onclick = function () {
+      if (_this.isRandom) {
+        _this.playRandomSongrepeatBtn();
+      } else {
+        _this.prevSong();
+      }
+      audio.play();
+      _this.render();
+      _this.scrollToActiveSong();
+    };
+
+    // Khi random song
+    randomBtn.onclick = function () {
+      _this.isRandom = !_this.isRandom;
+      _this.setConfig("isRandom", _this.isRandom);
+      randomBtn.classList.toggle("active", _this.isRandom);
+    };
+
+    // Khi reapeat song
+    repeatBtn.onclick = function () {
+      _this.isRepeat = !_this.isRepeat;
+      _this.setConfig("isReapeat", _this.isRepeat);
+      repeatBtn.classList.toggle("active", _this.isRepeat);
+    };
+
+    // Xử lý next song khi audio ended
+    audio.onended = function () {
+      if (_this.isRepeat) {
+        audio.play();
+      } else {
+        nextBtn.click();
+      }
+    };
+
+    // Lắng nghe hành vi click vào playlist
+    playList.onclick = function (e) {
+      const songNode = e.target.closest(".song:not(.active)");
+
+      if (songNode || e.target.closest(".option")) {
+        // Xử lý khi click vào song
+        if (songNode) {
+          _this.currentIndex = Number(songNode.dataset.index);
+          _this.loadCurrentSong();
+          _this.render();
+          audio.play();
+        }
+        // Xử lý khi click vào song option
+        if (e.target.closest(".option")) {
+        }
+      }
+    };
+  },
+  scrollToActiveSong: function () {
+    setTimeout(() => {
+      $(".song.active").scrollIntoView({
+        behavior: "smooth",
+        block: "nearest",
+      });
+    }, 300);
+  },
+  loadCurrentSong: function () {
+    heading.textContent = this.currentSong.name;
+    cdThumb.style.backgroundImage = `url('${this.currentSong.image}')`;
+    audio.src = this.currentSong.path;
+  },
+  loadConfig: function () {
+    this.isRandom = this.config.isRandom;
+    this.isRepeat = this.config.isRepeat;
+  },
+  nextSong: function () {
+    this.currentIndex++;
+    if (this.currentIndex >= this.songs.length) {
+      this.currentIndex = 0;
+    }
+    this.loadCurrentSong();
+  },
+  prevSong: function () {
+    this.currentIndex--;
+    if (this.currentIndex < 0) {
+      this.currentIndex = this.songs.length - 1;
+    }
+    this.loadCurrentSong();
+  },
+  playRandomSong: function () {
+    let newIndex;
+    do {
+      newIndex = Math.floor(Math.random() * this.songs.length);
+    } while (newIndex === this.currentIndex);
+    this.currentIndex = newIndex;
+    this.loadCurrentSong();
+  },
+  start: function () {
+    // Gán cấu hình từ config vào ứng dụng
+    this.loadConfig();
+    // Định nghĩa các thuộc tính cho object
+    this.defineProperties();
+    // Lắng nghe / xử lý các sự kiện (DOM events)
+    this.handleEvents();
+    // Tải thông tin bài hát đầu tiên vào UI khi chạy ứng dụng
+    this.loadCurrentSong();
+    // Render playlist
+    this.render();
+    // Hiển thị trạng thái ban đầu của button random & repeat
+    randomBtn.classList.toggle("active", this.isRandom);
+    randomBtn.classList.toggle("active", this.isRepeat);
+  },
+};
+
+app.start();
